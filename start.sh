@@ -18,9 +18,10 @@ fi
 if [ ! -z "$HOSTNAME" ]; then
 sed -i "s/^hostname=server1.example.com$/hostname=$HOSTNAME/g" /tmp/ispconfig3_install/install/autoinstall.ini
 fi
+service php7.0-fpm start
 # php -q /tmp/ispconfig3_install/install/install.php --autoinstall=/tmp/ispconfig3_install/install/autoinstall.ini
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 if [ ! -f /usr/local/ispconfig/interface/lib/config.inc.php ]; then
 	php -q /tmp/ispconfig3_install/install/install.php --autoinstall=/tmp/ispconfig3_install/install/autoinstall.ini
-	killall apache2
+	killall nginx
 fi

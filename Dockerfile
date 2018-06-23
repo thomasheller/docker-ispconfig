@@ -15,12 +15,12 @@
 #
 # Dockerfile for ISPConfig with MariaDB database
 #
-# https://www.howtoforge.com/tutorial/perfect-server-debian-8-jessie-apache-bind-dovecot-ispconfig-3/
-#
+# based on the Dockerfile by Jeremie Robert:
+# https://hub.docker.com/r/jerob/docker-ispconfig/
 
 FROM debian:stretch
 
-MAINTAINER Jeremie Robert <appydo@gmail.com> version: 0.2
+MAINTAINER Thomas Heller <thomas.m.heller@gmail.com> version: 0.2
 
 # Let the container know that there is no tty
 ENV DEBIAN_FRONTEND noninteractive
@@ -66,22 +66,22 @@ ADD ./etc/clamav/clamd.conf /etc/clamav/clamd.conf
 RUN service spamassassin stop
 RUN systemctl disable spamassassin
 
-# --- 10 Install Apache2, PHP5, phpMyAdmin, FCGI, suExec, Pear, And mcrypt
+# --- 10 Install nginx, PHP5, phpMyAdmin, FCGI, suExec, Pear, And mcrypt
 RUN echo 'phpmyadmin phpmyadmin/dbconfig-install boolean true' | debconf-set-selections
 # RUN echo 'phpmyadmin phpmyadmin/app-password-confirm password your-app-pwd' | debconf-set-selections
 RUN echo 'phpmyadmin phpmyadmin/mysql/admin-pass password pass' | debconf-set-selections
 # RUN echo 'phpmyadmin phpmyadmin/mysql/app-pass password your-app-db-pwd' | debconf-set-selections
-RUN echo 'phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2' | debconf-set-selections
-RUN service mysql restart && apt-get -y install apache2 apache2-doc apache2-utils libapache2-mod-php php7.0 php7.0-common php7.0-gd php7.0-mysql php7.0-imap phpmyadmin php7.0-cli php7.0-cgi libapache2-mod-fcgid apache2-suexec-pristine php-pear php7.0-mcrypt mcrypt  imagemagick libruby libapache2-mod-python php7.0-curl php7.0-intl php7.0-pspell php7.0-recode php7.0-sqlite3 php7.0-tidy php7.0-xmlrpc php7.0-xsl memcached php-memcache php-imagick php-gettext php7.0-zip php7.0-mbstring memcached libapache2-mod-passenger php7.0-soap
-RUN a2enmod suexec rewrite ssl actions include dav_fs dav auth_digest cgi
+RUN echo 'phpmyadmin phpmyadmin/reconfigure-webserver multiselect nginx' | debconf-set-selections
+RUN service mysql restart && apt-get -y install nginx php7.0 php7.0-common php7.0-gd php7.0-mysql php7.0-imap phpmyadmin php7.0-cli php7.0-cgi php-pear php7.0-mcrypt mcrypt  imagemagick libruby php7.0-curl php7.0-intl php7.0-pspell php7.0-recode php7.0-sqlite3 php7.0-tidy php7.0-xmlrpc php7.0-xsl memcached php-memcache php-imagick php-gettext php7.0-zip php7.0-mbstring memcached php7.0-soap
+# RUN a2enmod suexec rewrite ssl actions include dav_fs dav auth_digest cgi
 
 # --- 11 Install Let's Encrypt
 RUN apt-get -y install certbot
 
 # --- 12 Opcode and PHP-FPM
 RUN apt-get -y install php7.0-fpm php7.0-opcache php-apcu
-RUN a2enmod actions proxy_fcgi alias
-RUN service apache2 restart
+# RUN a2enmod actions proxy_fcgi alias
+RUN service nginx restart
 # php5 fpm (non-free)
 # RUN apt-get -y install libapache2-mod-fastcgi php5-fpm
 # RUN a2enmod actions fastcgi alias
@@ -94,7 +94,7 @@ RUN apt-get -y install mailman
 ADD ./etc/aliases /etc/aliases
 RUN newaliases
 RUN service postfix restart
-RUN ln -s /etc/mailman/apache.conf /etc/apache2/conf-enabled/mailman.conf
+# RUN ln -s /etc/mailman/apache.conf /etc/apache2/conf-enabled/mailman.conf
 
 # --- 14 Install PureFTPd And Quota
 RUN apt-get -y install pure-ftpd-common pure-ftpd-mysql quota quotatool
@@ -182,6 +182,7 @@ RUN mkdir -p /var/run/sshd
 RUN mkdir -p /var/log/supervisor
 RUN mv /bin/systemctl /bin/systemctloriginal
 ADD ./bin/systemctl /bin/systemctl
+ADD ./password_reset.sh /password_reset.sh
 
 RUN sed -i "s/^hostname=server1.example.com$/hostname=$HOSTNAME/g" /tmp/ispconfig3_install/install/autoinstall.ini
 # RUN mysqladmin -u root password pass
